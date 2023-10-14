@@ -23,15 +23,7 @@ brfss_smart2010 =
   brfss_smart2010 |>
   as_tibble()
 ```
-```{r}
-instacart |> 
-  group_by(aisle) |>
-  summarize(n = n()) |>
-  arrange(desc(n)) |>
-  head(3) |>
-  unlist() |>
-  paste(collapse = ", ")
-```
+
 
 The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illstrative examples of observations. Then, do or answer the following (commenting on the results of each):
 
@@ -84,15 +76,7 @@ instacart |>
   )
 ```
 
-First, do some data cleaning:
-
-format the data to use appropriate variable names;
-focus on the “Overall Health” topic
-include only responses from “Excellent” to “Poor”
-organize responses as a factor taking levels ordered from “Poor” to “Excellent”
-Using this dataset, do or answer the following (commenting on the results of each):
-
-Clean up data
+Clean up data by clean up variable names, focus on the “Overall Health” topic, removing data entries with reponses as "Very good", and convert responses as a factor taking levels ordered from “Poor” to “Excellent”.
 ```{r}
 brfss_smart2010 = brfss_smart2010 |>
   janitor::clean_names("snake") |>
@@ -105,21 +89,38 @@ brfss_smart2010 = brfss_smart2010 |>
   mutate(
     response = factor(response, levels = c("Poor", "Fair", "Good", "Excellent"))
   )
-
 ```
 
+
+**Q: In 2002, which states were observed at 7 or more locations? What about in 2010?**
 ```{r}
-brfss_smart2010 = brfss_smart2010 |>
-  filter(!response %in% c("Very good")) |>
+brfss_2002_multiloc_state = brfss_smart2010 |>
+  filter(year == 2002) |>
+  group_by(location_abbr) |>
+  distinct(geo_location) |>
+  summarize(num_of_locations = n()) |>
+  filter(num_of_locations >= 7) |>
   mutate(
-    response = factor(response, levels = c("Poor", "Fair", "Good", "Excellent"))
-  )
-print(is.factor(brfss_smart2010$response))
+    location_full = state.name[match(location_abbr, state.abb)]
+  )|>
+  pull(location_full)
+
+brfss_2010_multiloc_state = brfss_smart2010 |>
+  filter(year == 2010) |>
+  group_by(location_abbr) |>
+  distinct(geo_location) |>
+  summarize(num_of_locations = n()) |>
+  filter(num_of_locations >= 7) |>
+  mutate(
+    location_full = state.name[match(location_abbr, state.abb)]
+  )|>
+  pull(location_full)
 ```
+In 2002, `r paste(brfss_2002_multiloc_state, collapse = ", ")` (`r length(brfss_2002_multiloc_state)` total) were observed at 7 or more locations. And in 2010, `r paste(brfss_2010_multiloc_state, collapse = ", ")` (`r length(brfss_2010_multiloc_state)` total) were observed at 7 or more locations
 
 
-In 2002, which states were observed at 7 or more locations? What about in 2010?
 Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+
 Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
 
 
