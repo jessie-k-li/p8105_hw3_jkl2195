@@ -8,6 +8,7 @@ output: github_document
 ```{r echo=FALSE}
 library(tidyverse)
 library(ggridges)
+library(patchwork)
 library(p8105.datasets)
 ```
 
@@ -24,8 +25,7 @@ brfss_smart2010 =
   as_tibble()
 ```
 
-
-The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illstrative examples of observations. Then, do or answer the following (commenting on the results of each):
+# Problem 1
 
 There are a total of `r nrow(instacart)` rows and `r ncol(instacart)` cols in this dataset. This dataset contains characterization of Instacart orders. Some characterization includes product name, aisles (ex: fresh vegetables, 	
 lunch meat), department(ex: produce, deli), if the product has been ordered by the same customer before, the order which customer selects each product, the days since last order, and its product and order id. The data contains `r instacart |> select(product_id) |> distinct() |> count()` products,  `r instacart |> select(user_id, order_id) |> distinct() |> count()`, orders from `r instacart |> select(user_id) |> distinct() |> count()` distinct users.
@@ -76,14 +76,16 @@ instacart |>
   )
 ```
 
+# Problem 2
+
 Clean up data by clean up variable names, focus on the “Overall Health” topic, removing data entries with reponses as "Very good", and convert responses as a factor taking levels ordered from “Poor” to “Excellent”.
 ```{r}
 brfss_smart2010 = brfss_smart2010 |>
   janitor::clean_names("snake") |>
   filter(topic %in% c("Overall Health")) |>
   rename(
-    location_abbr = locationabbr,
-    location_desc = locationdesc
+    state = locationabbr,
+    location = locationdesc
   ) |>
   filter(!response %in% c("Very good")) |>
   mutate(
@@ -96,32 +98,76 @@ brfss_smart2010 = brfss_smart2010 |>
 ```{r}
 brfss_2002_multiloc_state = brfss_smart2010 |>
   filter(year == 2002) |>
-  group_by(location_abbr) |>
+  group_by(state) |>
   distinct(geo_location) |>
   summarize(num_of_locations = n()) |>
   filter(num_of_locations >= 7) |>
   mutate(
-    location_full = state.name[match(location_abbr, state.abb)]
+    location_full = state.name[match(state, state.abb)]
   )|>
   pull(location_full)
 
 brfss_2010_multiloc_state = brfss_smart2010 |>
   filter(year == 2010) |>
-  group_by(location_abbr) |>
+  group_by(state) |>
   distinct(geo_location) |>
   summarize(num_of_locations = n()) |>
   filter(num_of_locations >= 7) |>
   mutate(
-    location_full = state.name[match(location_abbr, state.abb)]
+    location_full = state.name[match(state, state.abb)]
   )|>
   pull(location_full)
 ```
 In 2002, `r paste(brfss_2002_multiloc_state, collapse = ", ")` (`r length(brfss_2002_multiloc_state)` total) were observed at 7 or more locations. And in 2010, `r paste(brfss_2010_multiloc_state, collapse = ", ")` (`r length(brfss_2010_multiloc_state)` total) were observed at 7 or more locations
 
 
-Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+
+This is a "spaghetti" plot limited of the Excellent responses of each states that maps averages the data_value across locations within a state over the years.
+```{r}
+brfss_smart2010_excellent = brfss_smart2010 |>
+  filter(response == "Excellent") |>
+  group_by(state, year) |>
+  mutate(mean = mean(data_value)) |>
+  select(year, state, mean)
+brfss_smart2010_excellent |>
+  ggplot(aes(x = year, y = mean, group = state, color = state)) +
+  geom_line() +
+  ggtitle("Mean Data Value over The Years Among Excellent Responses of Each State") + 
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 12, face = "bold")
+  ) 
+```
+
 
 Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+```{r}
+brfss_2006_data_value = brfss_smart2010 |>
+  filter(year == 2006, state == "NY") |>
+  select(response, data_value) |>
+  ggplot(aes(x = response, y = data_value)) +
+  geom_boxplot() +
+  labs(
+    title = "2006 Distribution of Data Value \namong Responses in NY",
+    x = "Response",
+    y = "Data Value"
+  )
+
+brfss_2010_data_value = brfss_smart2010 |>
+  filter(year == 2010, state == "NY") |>
+  select(response, data_value) |>
+  ggplot(aes(x = response, y = data_value)) +
+  geom_boxplot() +
+  labs(
+    title = "2010 Distribution of Data Value \namong Responses in NY",
+    x = "Response",
+    y = "Data Value"
+  )
+
+brfss_2006_data_value + brfss_2010_data_value
+```
+
+# Problem 3
 
 
 
