@@ -8,6 +8,7 @@ output: github_document
 ```{r echo=FALSE}
 library(tidyverse)
 library(ggridges)
+library(readr)
 library(patchwork)
 library(p8105.datasets)
 ```
@@ -132,7 +133,7 @@ brfss_smart2010_excellent = brfss_smart2010 |>
 brfss_smart2010_excellent |>
   ggplot(aes(x = year, y = mean, group = state, color = state)) +
   geom_line() +
-  ggtitle("Mean Data Value over The Years Among Excellent Responses of Each State") + 
+  ggtitle("Mean Data Value over The Years Among Excellent Responses in Each State") + 
   theme(
     legend.position = "none",
     plot.title = element_text(size = 12, face = "bold")
@@ -151,6 +152,9 @@ brfss_2006_data_value = brfss_smart2010 |>
     title = "2006 Distribution of Data Value \namong Responses in NY",
     x = "Response",
     y = "Data Value"
+  ) + 
+  theme(
+    plot.title = element_text(size = 12, face = "bold")
   )
 
 brfss_2010_data_value = brfss_smart2010 |>
@@ -162,12 +166,72 @@ brfss_2010_data_value = brfss_smart2010 |>
     title = "2010 Distribution of Data Value \namong Responses in NY",
     x = "Response",
     y = "Data Value"
+  ) + 
+  theme(
+    plot.title = element_text(size = 12, face = "bold")
   )
 
 brfss_2006_data_value + brfss_2010_data_value
 ```
 
 # Problem 3
+
+**Background:** Accelerometers have become an appealing alternative to self-report techniques for studying physical activity in observational studies and clinical trials, largely because of their relative objectivity. During observation periods, the devices can measure MIMS in a short period; one-minute intervals are common. Because accelerometers can be worn comfortably and unobtrusively, they produce around-the-clock observations.
+
+```{r}
+substr("Hello",4,7)
+```
+
+Reads data
+```{r}
+nhanes_accel = read_csv("data/nhanes_accel.csv") |>
+  janitor::clean_names() 
+
+
+
+nhanes_covar = read_csv("data/nhanes_covar.csv", skip = 4) |>
+  janitor::clean_names() |>
+  filter(
+    age >= 21,
+    !is.na(sex),
+    !is.na(education),
+    !is.na(age)
+  ) |>
+  mutate(
+    sex = case_match(
+      sex,
+      1 ~ "male",
+      2 ~ "female"
+    ),
+    education = case_match(
+      education,
+      1 ~ "less than high school",
+      2 ~ "high school equivalent",
+      3 ~ "more than high school"
+    )
+  )
+
+nhanes_merged = inner_join(nhanes_accel, nhanes_covar, by = "seqn")
+
+```
+
+|>
+  pivot_longer(
+    cols = starts_with("min"),
+    names_to = "min",
+    values_to = "mims_value"
+  ) |>
+  mutate(
+    min = sub('...','',min)
+  )
+
+Load, tidy, merge, and otherwise organize the data sets. Your final dataset should include all originally observed variables; exclude participants less than 21 years of age, and those with missing demographic data; and encode data with reasonable variable classes (i.e. not numeric, and using factors with the ordering of tables and plots in mind).
+
+Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
+
+Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences. Comment on your plot.
+
+Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
 
 
 
